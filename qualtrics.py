@@ -22,7 +22,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# https://api.qualtrics.com/docs/response-exports
 import argparse
 import requests
 import zipfile
@@ -71,5 +70,11 @@ requestDownloadUrl = baseUrl + progressId + '/file'
 requestDownload = requests.request("GET", requestDownloadUrl, headers=headers, stream=True)
 
 # Step 4: Unzipping the file
-zipfile.ZipFile(io.BytesIO(requestDownload.content)).extractall("MyQualtricsDownload")
+qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content)).read("mPerf integration test.json")
+
+# Reading the file
+jsonResponse = json.loads(qfile.decode('utf-8'))
+for child in jsonResponse['responses']:
+    print (child['ResponseID'], child['participantID'], child['Q1'], child['Q2'], child['Q3'], child['Q4'], child['Q5'])
+
 print('Complete')
