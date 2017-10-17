@@ -37,9 +37,9 @@ parser.add_argument('-f', "--fileFormat", default = "json", help="Qualtrics Expo
 args = parser.parse_args()
 
 # Setting user Parameters
-dataCenter = args.dataCenter
-apiToken = args.apiToken
-surveyId = args.surveyId
+dataCenter='umn'
+apiToken='oHVAiYMSiyOdVDLpl5qQGBIhMvj8LCIsj1zEDRxE'
+surveyId='SV_1IaMWozK3ROmWFL'
 fileFormat = args.fileFormat
 
 # Setting static parameters
@@ -49,6 +49,7 @@ baseUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
 headers = {
     "content-type": "application/json",
     "x-api-token": apiToken,
+    "-o": "response.zip"
     }
 
 # Step 1: Creating Data Export
@@ -70,10 +71,12 @@ requestDownloadUrl = baseUrl + progressId + '/file'
 requestDownload = requests.request("GET", requestDownloadUrl, headers=headers, stream=True)
 
 # Step 4: Unzipping the file
-qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content)).read("mPerf integration test.json")
+#qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content)).read("mPerf integration test.json")
+qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content))
+
 
 # Reading the file
-jsonResponse = json.loads(qfile.decode('utf-8'))
+jsonResponse = json.loads(qfile.read(qfile.filelist[0].orig_filename).decode('utf-8'))
 for child in jsonResponse['responses']:
     print (child['ResponseID'], child['participantID'], child['Q1'], child['Q2'], child['Q3'], child['Q4'], child['Q5'])
 
