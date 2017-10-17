@@ -27,6 +27,7 @@ import requests
 import zipfile
 import json
 import io
+import csv
 
 # Program Arguments
 parser = argparse.ArgumentParser()
@@ -42,14 +43,20 @@ apiToken = args.apiToken
 surveyId = args.surveyId
 fileFormat = args.fileFormat
 
+questionnaireUrl = "https://{}.qualtrics.com/API/v3/surveys/{}".format(dataCenter, surveyId)
+headers = {
+    "content-type": "application/" + fileFormat,
+    "x-api-token": apiToken,
+    }
+questionnaireResponse = requests.get(questionnaireUrl, headers=headers)
+questionnaireFile = questionnaireResponse.content
+questionnaireJson = json.loads(questionnaireFile.decode('utf-8'))
+exportFileName = questionnaireJson['result']['name']
+
 # Setting static parameters
 requestCheckProgress = 0
 progressStatus = "in progress"
 baseUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
-headers = {
-    "content-type": "application/json",
-    "x-api-token": apiToken,
-    }
 
 # Step 1: Creating Data Export
 downloadRequestUrl = baseUrl
@@ -69,12 +76,18 @@ while requestCheckProgress < 100 and progressStatus is not "complete":
 requestDownloadUrl = baseUrl + progressId + '/file'
 requestDownload = requests.request("GET", requestDownloadUrl, headers=headers, stream=True)
 
-# Step 4: Unzipping the file
-qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content)).read("mPerf integration test.json")
+# Step 4: Unzipping the file to ./data dir
+# TODO: JSON not CSV (what to do when it is in CSV format!)
+zipfile.ZipFile(io.BytesIO(requestDownload.content)).extractall("data")
+with open("data/" + exportFileName + "." + fileFormat) as f:
+    creader = csv.reader(f)
+    for row in creader:
+        print(row)
+
+#qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content)).read("mPerf integration test.json")
+#qfile.close()
 
 # Reading the file
-jsonResponse = json.loads(qfile.decode('utf-8'))
-for child in jsonResponse['responses']:
-    print (child['ResponseID'], child['participantID'], child['Q1'], child['Q2'], child['Q3'], child['Q4'], child['Q5'])
-
-print('Complete')
+#jsonResponse = json.loads(qfile.decode('utf-8'))
+#for child in jsonResponse['responses']:
+#    print (child['ResponseID'], child['participantID'], child['Q1'], child['Q2'], child['Q3'], child['Q4'], child['Q5'])

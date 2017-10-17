@@ -26,5 +26,5 @@ or
 
 ###### Get Organization - [Qualtrics Doc](https://api.qualtrics.com/docs/get-brand-info)
 
-```curl -H "X-API-TOKEN: ${api_token}" "https://${data_center}.qualtrics.com/API/v3/organizations/exampleorganization"```
+```curl -H "X-API-TOKEN: ${api_token}" "https://${data_center}.qualtrics.com/API/v3/organizations/mPerf"```
 >**error** - "httpStatus":"401 - Unauthorized","error":{"errorMessage":"Insufficient permissions."
