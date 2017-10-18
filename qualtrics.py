@@ -38,9 +38,9 @@ parser.add_argument('-f', "--fileFormat", default = "json", help="Qualtrics Expo
 args = parser.parse_args()
 
 # Setting user Parameters
-dataCenter = args.dataCenter
-apiToken = args.apiToken
-surveyId = args.surveyId
+dataCenter=''
+apiToken=''
+surveyId=''
 fileFormat = args.fileFormat
 
 headers = {"content-type": "application/" + fileFormat, "x-api-token": apiToken,
