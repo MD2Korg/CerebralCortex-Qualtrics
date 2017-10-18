@@ -43,51 +43,32 @@ apiToken = args.apiToken
 surveyId = args.surveyId
 fileFormat = args.fileFormat
 
+headers = {"content-type": "application/" + fileFormat, "x-api-token": apiToken,
+#    "-o": "response.zip"
+}
+
 questionnaireUrl = "https://{}.qualtrics.com/API/v3/surveys/{}".format(dataCenter, surveyId)
-headers = {
-    "content-type": "application/" + fileFormat,
-    "x-api-token": apiToken,
-    }
-questionnaireResponse = requests.get(questionnaireUrl, headers=headers)
-questionnaireFile = questionnaireResponse.content
-questionnaireJson = json.loads(questionnaireFile.decode('utf-8'))
-exportFileName = questionnaireJson['result']['name']
+questionnaireResponse = requests.request("GET", questionnaireUrl, headers=headers)
+exportFileName = questionnaireResponse.json()['result']['name']
+#questionnaireFile = questionnaireResponse.content
+#questionnaireJson = json.loads(questionnaireFile.decode('utf-8'))
+#exportFileName = questionnaireJson['result']['name']
 
-# Setting static parameters
-requestCheckProgress = 0
-progressStatus = "in progress"
-baseUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
-
-# Step 1: Creating Data Export
-downloadRequestUrl = baseUrl
+# Downloading export
+downloadRequestUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
 downloadRequestPayload = '{"format":"' + fileFormat + '","surveyId":"' + surveyId + '"}'
 downloadRequestResponse = requests.request("POST", downloadRequestUrl, data=downloadRequestPayload, headers=headers)
-progressId = downloadRequestResponse.json()["result"]["id"]
-print(downloadRequestResponse.text)
-
-# Step 2: Checking on Data Export Progress and waiting until export is ready
-while requestCheckProgress < 100 and progressStatus is not "complete":
-    requestCheckUrl = baseUrl + progressId
-    requestCheckResponse = requests.request("GET", requestCheckUrl, headers=headers)
-    requestCheckProgress = requestCheckResponse.json()["result"]["percentComplete"]
-    print("Download is " + str(requestCheckProgress) + " complete")
-
-# Step 3: Downloading file
-requestDownloadUrl = baseUrl + progressId + '/file'
+token = downloadRequestResponse.json()["result"]["id"]
+requestDownloadUrl = downloadRequestUrl + token + '/file'
 requestDownload = requests.request("GET", requestDownloadUrl, headers=headers, stream=True)
-
-# Step 4: Unzipping the file to ./data dir
-# TODO: JSON not CSV (what to do when it is in CSV format!)
 zipfile.ZipFile(io.BytesIO(requestDownload.content)).extractall("data")
 with open("data/" + exportFileName + "." + fileFormat) as f:
     creader = csv.reader(f)
     for row in creader:
         print(row)
 
-#qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content)).read("mPerf integration test.json")
+#qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content))
+#jsonResponse = json.loads(qfile.read(qfile.filelist[0].orig_filename).decode('utf-8'))
 #qfile.close()
-
-# Reading the file
-#jsonResponse = json.loads(qfile.decode('utf-8'))
 #for child in jsonResponse['responses']:
 #    print (child['ResponseID'], child['participantID'], child['Q1'], child['Q2'], child['Q3'], child['Q4'], child['Q5'])
