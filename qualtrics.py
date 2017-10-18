@@ -27,7 +27,6 @@ import requests
 import zipfile
 import json
 import io
-import csv
 
 # Program Arguments
 parser = argparse.ArgumentParser()
@@ -47,22 +46,19 @@ headers = {"content-type": "application/" + fileFormat, "x-api-token": apiToken,
 #    "-o": "response.zip"
 }
 
-questionnaireUrl = "https://{}.qualtrics.com/API/v3/surveys/{}".format(dataCenter, surveyId)
-questionnaireResponse = requests.request("GET", questionnaireUrl, headers=headers)
-exportFileName = questionnaireResponse.json()['result']['name']
+questionsUrl = "https://{}.qualtrics.com/API/v3/surveys/{}".format(dataCenter, surveyId)
+questionsResponse = requests.request("GET", questionsUrl, headers=headers)
+exportFileName = questionsResponse.json()['result']['name']
+print(exportFileName)
 
 # Downloading export
-downloadRequestUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
-downloadRequestPayload = '{"format":"' + fileFormat + '","surveyId":"' + surveyId + '"}'
-downloadRequestResponse = requests.request("POST", downloadRequestUrl, data=downloadRequestPayload, headers=headers)
-token = downloadRequestResponse.json()["result"]["id"]
-requestDownloadUrl = downloadRequestUrl + token + '/file'
-requestDownload = requests.request("GET", requestDownloadUrl, headers=headers, stream=True)
-zipfile.ZipFile(io.BytesIO(requestDownload.content)).extractall("data")
-with open("data/" + exportFileName + "." + fileFormat) as f:
-    creader = csv.reader(f)
-    for row in creader:
-        print(row)
+responsesUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
+tokenPayload = '{"format":"' + fileFormat + '","surveyId":"' + surveyId + '"}'
+tokenResponse = requests.request("POST", responsesUrl, data=tokenPayload, headers=headers)
+token = tokenResponse.json()["result"]["id"]
+responsesUrl = responsesUrl + token + '/file'
+responsesResponse = requests.request("GET", responsesUrl, headers=headers, stream=True)
+zipfile.ZipFile(io.BytesIO(responsesResponse.content)).extractall("data")
 
 #qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content))
 #jsonResponse = json.loads(qfile.read(qfile.filelist[0].orig_filename).decode('utf-8'))
