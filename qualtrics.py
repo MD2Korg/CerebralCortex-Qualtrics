@@ -38,9 +38,9 @@ parser.add_argument('-f', "--fileFormat", default = "json", help="Qualtrics Expo
 args = parser.parse_args()
 
 # Setting user Parameters
-dataCenter=''
-apiToken=''
-surveyId=''
+dataCenter = args.dataCenter
+apiToken = args.apiToken
+surveyId = args.surveyId
 fileFormat = args.fileFormat
 
 headers = {"content-type": "application/" + fileFormat, "x-api-token": apiToken,
@@ -50,9 +50,6 @@ headers = {"content-type": "application/" + fileFormat, "x-api-token": apiToken,
 questionnaireUrl = "https://{}.qualtrics.com/API/v3/surveys/{}".format(dataCenter, surveyId)
 questionnaireResponse = requests.request("GET", questionnaireUrl, headers=headers)
 exportFileName = questionnaireResponse.json()['result']['name']
-#questionnaireFile = questionnaireResponse.content
-#questionnaireJson = json.loads(questionnaireFile.decode('utf-8'))
-#exportFileName = questionnaireJson['result']['name']
 
 # Downloading export
 downloadRequestUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
