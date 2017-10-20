@@ -27,13 +27,16 @@ import requests
 import zipfile
 import json
 import io
+import os
 
 # Program Arguments
+#MAKE NAMED OPTIONS AND THEN REQUIRED.
 parser = argparse.ArgumentParser()
-parser.add_argument("dataCenter", help="Qualtrics Data Center")
-parser.add_argument("apiToken", help="Qualtrics API Token")
-parser.add_argument("surveyId", help="Qualtrics Survey ID")
+parser.add_argument("-d", "--dataCenter", help="Qualtrics Data Center", required=True)
+parser.add_argument("-a", "--apiToken", help="Qualtrics API Token", required=True)
+parser.add_argument("-s", "--surveyId", help="Qualtrics Survey ID", required=True)
 parser.add_argument('-f', "--fileFormat", default = "json", help="Qualtrics Export File Format")
+parser.add_argument('-p', "--payloadPath", default = str(os.path.dirname(os.path.realpath(__file__)) + "/data/"), help="Qualtrics Output Directory")
 args = parser.parse_args()
 
 # Setting user Parameters
@@ -41,27 +44,55 @@ dataCenter = args.dataCenter
 apiToken = args.apiToken
 surveyId = args.surveyId
 fileFormat = args.fileFormat
+payloadPath = args.payloadPath
 
-headers = {"content-type": "application/" + fileFormat, "x-api-token": apiToken,
-#    "-o": "response.zip"
-}
+questions = ["Q1", "Q2", "Q3", "Q4", "Q5", "QID188"]
+# Setting static parameters
+requestCheckProgress = 0
+progressStatus = "in progress"
+baseUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
+headers = {
+    "content-type": "application/json",
+    "x-api-token": apiToken,
+    "includedQuestionIds": json.dumps(questions),
+    "useLabels": 'True',
+    }
+
+# Step 1: Creating Data Export
+downloadRequestUrl = baseUrl
+downloadRequestPayload = '{"format":"' + fileFormat + '","surveyId":"' + surveyId + '"}'
+downloadRequestResponse = requests.request("POST", downloadRequestUrl, data=downloadRequestPayload, headers=headers)
+token = downloadRequestResponse.json()["result"]["id"]
+print(downloadRequestResponse.text)
+
+# Step 2: Checking on Data Export Progress and waiting until export is ready
+while requestCheckProgress < 100 and progressStatus is not "complete":
+    requestCheckUrl = baseUrl + token
+    requestCheckResponse = requests.request("GET", requestCheckUrl, headers=headers)
+    requestCheckProgress = requestCheckResponse.json()["result"]["percentComplete"]
+    print("Download is " + str(requestCheckProgress) + " complete")
+
+# Step 3: Downloading file
+requestDownloadUrl = baseUrl + token + '/file'
+requestDownload = requests.request("GET", requestDownloadUrl, headers=headers, stream=True)
+
+# Step 4: Unzipping the file
+zipfile.ZipFile(io.BytesIO(requestDownload.content)).extractall(payloadPath)
 
 questionsUrl = "https://{}.qualtrics.com/API/v3/surveys/{}".format(dataCenter, surveyId)
-questionsResponse = requests.request("GET", questionsUrl, headers=headers)
-exportFileName = questionsResponse.json()['result']['name']
-print(exportFileName)
+questionsResponse = requests.request("GET", questionsUrl, headers={"content-type": "application/" + fileFormat, "x-api-token": apiToken,})
+surveyFileName = payloadPath + questionsResponse.json()['result']['name'] + "." + fileFormat
+# Should I use a buffered reader?
+with open(surveyFileName) as jreader:
+    surveyData = json.load(jreader)
 
-# Downloading export
-responsesUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
-tokenPayload = '{"format":"' + fileFormat + '","surveyId":"' + surveyId + '"}'
-tokenResponse = requests.request("POST", responsesUrl, data=tokenPayload, headers=headers)
-token = tokenResponse.json()["result"]["id"]
-responsesUrl = responsesUrl + token + '/file'
-responsesResponse = requests.request("GET", responsesUrl, headers=headers, stream=True)
-zipfile.ZipFile(io.BytesIO(responsesResponse.content)).extractall("data")
+for child in json.loads(questionsResponse.text)['result']['questions']:
+    questionName = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionName']
+    questionText = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionText']
+    print(questionName)
+    for child in surveyData['responses']:
+        for key, value in child.items():
+            if key == questionName:
+                print(child['ResponseID'], key+ ": " + value)
 
-#qfile = zipfile.ZipFile(io.BytesIO(requestDownload.content))
-#jsonResponse = json.loads(qfile.read(qfile.filelist[0].orig_filename).decode('utf-8'))
-#qfile.close()
-#for child in jsonResponse['responses']:
-#    print (child['ResponseID'], child['participantID'], child['Q1'], child['Q2'], child['Q3'], child['Q4'], child['Q5'])
+print('Complete')
