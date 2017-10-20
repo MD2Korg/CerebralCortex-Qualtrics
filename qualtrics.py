@@ -46,16 +46,16 @@ surveyId = args.surveyId
 fileFormat = args.fileFormat
 payloadPath = args.payloadPath
 
-questions = ["Q1", "Q2", "Q3", "Q4", "Q5", "QID188"]
 # Setting static parameters
+#questions = ["Q1", "Q2", "Q3", "Q4", "Q5", "QID188"]
 requestCheckProgress = 0
 progressStatus = "in progress"
 baseUrl = "https://{0}.qualtrics.com/API/v3/responseexports/".format(dataCenter)
 headers = {
     "content-type": "application/json",
     "x-api-token": apiToken,
-    "includedQuestionIds": json.dumps(questions),
-    "useLabels": 'True',
+#    "includedQuestionIds": json.dumps(questions),
+#    "useLabels": 'True',
     }
 
 # Step 1: Creating Data Export
@@ -86,6 +86,7 @@ surveyFileName = payloadPath + questionsResponse.json()['result']['name'] + "." 
 with open(surveyFileName) as jreader:
     surveyData = json.load(jreader)
 
+# Test 1
 for child in json.loads(questionsResponse.text)['result']['questions']:
     questionName = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionName']
     questionText = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionText']
@@ -93,6 +94,23 @@ for child in json.loads(questionsResponse.text)['result']['questions']:
     for child in surveyData['responses']:
         for key, value in child.items():
             if key == questionName:
-                print(child['ResponseID'], key+ ": " + value)
+                print(child['ResponseID'], questionText + ": " + value)
+
+# Test 2
+questionDict = {}
+for child in json.loads(questionsResponse.text)['result']['questions']:
+    questionName = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionName']
+    questionText = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionText']
+    questionDict[questionName] = questionText
+userData = {}
+for child in surveyData['responses']:
+    userData['ResponseID'] = child['ResponseID']
+#    userData['PID'] = child['PID']
+    for key, value in child.items():
+        if key in questionDict:
+            userData[questionDict[key]] = value
+    with open (payloadPath + "/" + userData['ResponseID'] + "_" + surveyId + "." + fileFormat, 'w', encoding='utf-8') as jwriter:
+        json.dump(userData, jwriter)
+
 
 print('Complete')
