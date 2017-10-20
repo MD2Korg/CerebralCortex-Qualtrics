@@ -102,14 +102,14 @@ for child in json.loads(questionsResponse.text)['result']['questions']:
     questionName = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionName']
     questionText = json.loads(questionsResponse.text)['result']['questions'][str(child)]['questionText']
     questionDict[questionName] = questionText
-userData = {}
 for child in surveyData['responses']:
+    userData = {}
     userData['ResponseID'] = child['ResponseID']
 #    userData['PID'] = child['PID']
     for key, value in child.items():
         if key in questionDict:
             userData[questionDict[key]] = value
-    with open (payloadPath + "/" + userData['ResponseID'] + "_" + surveyId + "." + fileFormat, 'w', encoding='utf-8') as jwriter:
+    with open (payloadPath + "/" + userData['ResponseID'] + "-" + surveyId + "." + fileFormat, 'w', encoding='utf-8') as jwriter:
         json.dump(userData, jwriter)
 
 
